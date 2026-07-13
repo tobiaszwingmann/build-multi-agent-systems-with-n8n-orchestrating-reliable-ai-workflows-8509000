@@ -1,0 +1,228 @@
+{
+  "name": "01_03",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e8454f67-6da0-44eb-b029-b15042542e23",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "39de528b-0b4b-4247-985a-078e3062f1ad",
+              "name": "query",
+              "value": "Did Disney already release their Q2 earnings for 2026?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "bf351935-4a6c-42ea-bb97-c2628c319d3b",
+      "name": "Define Research Query"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "low"
+          }
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        208
+      ],
+      "id": "644787c5-d7d4-43c8-8013-37fc9bdc74a0",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Qisx2uzl8QHJIcCg",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Research query:\n\"\"\"\n{{ $json.query }}\n\"\"\"",
+        "options": {
+          "systemMessage": "Answer the research question using web search. Respond in a short, concise way."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "9a2e6c08-96f7-4c02-9f3c-6646f3f8d9b1",
+      "name": "Research"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Research question:\n\"\"\"\n{{ $('Define Research Query').item.json.query }}\n\"\"\"\n\nFindings gathered so far:\n\"\"\"\n{{ $json.output }}\n\"\"\"",
+        "options": {
+          "systemMessage": "You are a critique agent.\n\nDetermine whether the research question has been fully answered using only the findings gathered so far.\n\nReturn only valid JSON in this exact format:\n\n{\n\"done\": true,\n\"gaps\": \"\",\n\"reasoning\": \"\"\n}\n\nRules:\n* Set \"done\" to true only if the findings completely answer the research question.\n* Set \"done\" to false if the answer is incomplete, unclear, unsupported, or missing important information.\n* Use \"gaps\" to briefly describe what is missing or still needs research.\n* Use \"reasoning\" to briefly explain your verdict.\n* Do not include markdown, comments, or any text outside the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        768,
+        0
+      ],
+      "id": "53d10f8c-7625-402f-9d36-40c29e6d7606",
+      "name": "Critique Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "name": "critique_schema",
+              "schema": "{\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\"done\", \"gaps\", \"reasoning\"],\n  \"properties\": {\n    \"done\": {\n      \"type\": \"boolean\",\n      \"description\": \"True if the findings completely answer the research question; false otherwise.\"\n    },\n    \"gaps\": {\n      \"type\": \"string\",\n      \"description\": \"Briefly describe what is missing, unclear, unsupported, or still needs research. Use an empty string if there are no gaps.\"\n    },\n    \"reasoning\": {\n      \"type\": \"string\",\n      \"description\": \"Brief explanation of why the answer is complete or incomplete.\"\n    }\n  }\n}"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        208
+      ],
+      "id": "2b8c7f3d-09f7-4433-8dfb-16663962bcee",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Qisx2uzl8QHJIcCg",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Research": [
+      {
+        "json": {
+          "output": "Yes. Disney released its fiscal second-quarter 2026 results on May 6, 2026 (posted before market open) and held a webcast to discuss the results. ([investors.thewaltdisneycompany.com](https://investors.thewaltdisneycompany.com/financials/quarterly-results/default.aspx?utm_source=openai))\n\nWould you like the press release, the 10‑Q, or a quick summary of the key numbers?"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Critique Agent": [
+      {
+        "json": {
+          "output": "{\"done\":true,\"gaps\":\"\",\"reasoning\":\"The findings explicitly state Disney released its fiscal Q2 2026 results on May 6, 2026 (before market open) and held a webcast, with a citation to the investor website—this directly answers the question.\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Define Research Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define Research Query": {
+      "main": [
+        [
+          {
+            "node": "Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research": {
+      "main": [
+        [
+          {
+            "node": "Critique Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Critique Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b0407b05-4b4f-446d-82a9-49f222e7a0a6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d4a4b34dba3ee3b7962c8920f1d1ae2e83302284e2d9036f405c172286e6d2fe"
+  },
+  "nodeGroups": [],
+  "id": "euFOuaGApBSrcc8v",
+  "tags": []
+}
